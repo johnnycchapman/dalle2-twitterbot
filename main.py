@@ -1,59 +1,57 @@
 import tweepy
+import requests
 import random
-import openai
+import os
 
-def generate_image():
-    # Array of nouns (animals)
-    nouns = []
-    animal_list = ["cat", "dog", "elephant", "lion", "tiger", "monkey", "giraffe", "zebra", "horse", "rabbit", "cow", "sheep", "bear", "panda", "kangaroo", "dolphin", "shark", "whale", "octopus", "snake"]
-    for _ in range(20):
-        noun = random.choice(animal_list)
-        nouns.append(noun)
+# DALL·E2 API endpoint
+DALLE2_API_URL = "https://api.openai.com/v1/images/dalle2/generate"
 
-    # Array of verbs ending in "-ing"
-    verbs = []
-    verb_list = ["running", "jumping", "eating", "sleeping", "playing", "singing", "dancing", "reading", "writing", "swimming", "flying", "climbing", "crawling", "hunting", "fighting", "chasing", "exploring", "building", "digging", "cooking"]
-    for _ in range(20):
-        verb = random.choice(verb_list)
-        verbs.append(verb)
-
-    # Array of locations
-    locations = []
-    location_list = ["beach", "mountain", "forest", "city", "desert", "lake", "river", "island", "cave", "park", "castle", "farm", "jungle", "valley", "ocean", "waterfall", "village", "space", "countryside", "canyon"]
-    for _ in range(50):
-        location = random.choice(location_list)
-        locations.append(location)
-
-    noun = random.choice(nouns)
-    verb = random.choice(verbs)
-    location = random.choice(locations)
-
-    randprompt = f'A {noun} {verb} in the {location}, 3D render'
-
-    openai.api_key = 'API-KEY'
-    response = openai.Image.create(
-        prompt=randprompt,
-        n=1,
-        size="1024x1024"
-    )
-    image_url = response['data'][0]['url']
-
-    return randprompt, image_url
-    
-
-# Set your Twitter API credentials
-consumer_key = 'USER_Key'
-consumer_secret = 'USER_Secret'
-access_token = 'ACCESS_TOKEN'
-access_token_secret = 'ACCESS_TOKEN_SECRET'
+# List of animals, actions, and locations
+# List of animals, actions, and locations
+animals = ["cat", "dog", "elephant", "lion", "tiger", "monkey", "giraffe", "zebra", "horse", "rabbit", "cow", "sheep", "bear", "panda", "kangaroo", "dolphin", "shark", "whale", "octopus", "snake","penguin"]
+actions = ["running", "jumping", "eating", "sleeping", "playing", "singing", "dancing", "reading", "writing", "swimming", "flying", "climbing", "crawling", "hunting", "fighting", "chasing", "exploring", "building", "digging", "cooking","skating","biking"]
+locations = ["beach", "mountain", "forest", "city", "desert", "lake", "river", "island", "cave", "park", "castle", "farm", "jungle", "valley", "ocean", "waterfall", "village", "space", "countryside", "canyon"]
 
 # Authenticate with Twitter API
-auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-auth.set_access_token(access_token, access_token_secret)
+auth = tweepy.OAuthHandler(os.environ["TWITTER_API_KEY"], os.environ["TWITTER_API_SECRET"])
+auth.set_access_token(os.environ["TWITTER_ACCESS_TOKEN"], os.environ["TWITTER_ACCESS_TOKEN_SECRET"])
 api = tweepy.API(auth)
 
-# Generate and post the image and prompt to Twitter
-randprompt, image_url = generate_image()
-tweet_text = f"{randprompt}\n{image_url}"
+def get_random_prompt():
+    animal = random.choice(animals)
+    action = random.choice(actions)
+    location = random.choice(locations)
+    prompt = f"A {animal} {action} at the {location}"
+    return prompt
 
-api.update_status(status=tweet_text)
+def generate_dalle2_image(prompt):
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.environ['DALLE2_API_KEY']}"
+    }
+    data = {
+        "prompt": prompt,
+        "num_images": 1
+    }
+    response = requests.post(DALLE2_API_URL, headers=headers, json=data)
+    response.raise_for_status()
+    return response.json()["images"][0]["url"]
+
+def tweet_random_dalle2_image():
+    prompt = get_random_prompt()
+    image_url = generate_dalle2_image(prompt)
+    
+    # Download the image
+    image_data = requests.get(image_url).content
+    filename = "dalle2_image.jpg"
+    with open(filename, "wb") as f:
+        f.write(image_data)
+    
+    # Tweet the image
+    api.update_with_media(filename, status=prompt)
+    
+    # Remove the downloaded image
+    os.remove(filename)
+
+# Tweet a random DALL·E2 image
+tweet_random_dalle2_image()
