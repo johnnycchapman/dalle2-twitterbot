@@ -1,5 +1,2 @@
-pipreqs
 tweepy
 requests
-random
-os
