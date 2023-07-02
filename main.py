@@ -1,20 +1,20 @@
 import tweepy
+import requests
 import random
 import os
-import openai
+
+# DALL·E2 API endpoint
+DALLE2_API_URL = "https://api.openai.com/v1/images/dalle2/generate"
 
 # List of animals, actions, and locations
-animals = ["cat", "dog", "elephant", "lion", "tiger", "monkey", "giraffe", "zebra", "horse", "rabbit", "cow", "sheep", "bear", "panda", "kangaroo", "dolphin", "shark", "whale", "octopus", "snake","penguin"]
-actions = ["running", "jumping", "eating", "sleeping", "playing", "singing", "dancing", "reading", "writing", "swimming", "flying", "climbing", "crawling", "hunting", "fighting", "chasing", "exploring", "building", "digging", "cooking","skating","biking"]
-locations = ["beach", "mountain", "forest", "city", "desert", "lake", "river", "island", "cave", "park", "castle", "farm", "jungle", "valley", "ocean", "waterfall", "village", "space", "countryside", "canyon"]
+animals = ["cat", "dog", "elephant", "lion", "penguin"]
+actions = ["running", "reading", "jumping", "sleeping", "eating"]
+locations = ["beach", "forest", "mountain", "city", "countryside"]
 
 # Authenticate with Twitter API
 auth = tweepy.OAuthHandler(os.environ["TWITTER_API_KEY"], os.environ["TWITTER_API_SECRET"])
 auth.set_access_token(os.environ["TWITTER_ACCESS_TOKEN"], os.environ["TWITTER_ACCESS_TOKEN_SECRET"])
 api = tweepy.API(auth)
-
-# Set up OpenAI API
-openai.api_key = os.environ["DALLE2_API_KEY"]
 
 def get_random_prompt():
     animal = random.choice(animals)
@@ -24,11 +24,17 @@ def get_random_prompt():
     return prompt
 
 def generate_dalle2_image(prompt):
-    response = openai.Image.create(
-        prompt=prompt,
-        num_images=1
-    )
-    return response.images[0].url
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.environ['DALLE2_API_KEY']}"
+    }
+    data = {
+        "prompt": prompt,
+        "num_images": 1
+    }
+    response = requests.post(DALLE2_API_URL, headers=headers, json=data)
+    response.raise_for_status()
+    return response.json()["images"][0]["url"]
 
 def tweet_random_dalle2_image():
     prompt = get_random_prompt()
