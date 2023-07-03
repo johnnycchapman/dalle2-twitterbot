@@ -4,7 +4,7 @@ import random
 import os
 
 # DALL·E2 API endpoint
-DALLE2_API_URL = "https://api.openai.com/v1/images/dalle2/generate"
+DALLE2_API_URL = "https://api.openai.com/v1/images/generations"
 
 # List of animals, actions, and locations
 animals = ["cat", "dog", "elephant", "lion", "penguin"]
@@ -30,7 +30,8 @@ def generate_dalle2_image(prompt):
     }
     data = {
         "prompt": prompt,
-        "num_images": 1
+        "num_images": 1,
+        "size": "1024x1024"
     }
     response = requests.post(DALLE2_API_URL, headers=headers, json=data)
     response.raise_for_status()
